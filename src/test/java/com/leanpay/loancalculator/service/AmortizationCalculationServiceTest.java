@@ -87,10 +87,6 @@ public class AmortizationCalculationServiceTest {
 
     @Test
     public void testCalculateAmortizationObligations_WhenAmortizationRequestIsNull() {
-        // Given
-        AmortizationRequest amortizationRequest = null;
-        AmortizationResponse expectedResponse = AmortizationResponse.builder().build();
-
         // When
         assertThrows(NullPointerException.class, () -> {
             amortizationCalculationService.calculateAmortizationObligations(null);
