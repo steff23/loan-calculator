@@ -23,18 +23,23 @@ public class AmortizationCalculationService {
         double periodicalInterestRate = calculatePeriodicalInterestRate(amortizationRequest);
 
         double periodicalPayment = calculatePeriodicalPayment(amortizationRequest.getLoanAmount(), periodicalInterestRate, amortizationRequest.getNumberOfPayments());
+        double roundedPeriodicalPayment = ServiceUtils.roundNumbers(periodicalPayment, 2);
         double remainingBalance = amortizationRequest.getLoanAmount();
 
         List<AmortizationSchedule> schedules = new ArrayList<>();
-        for(int paymentNumber = 1; paymentNumber < amortizationRequest.getNumberOfPayments(); paymentNumber ++) {
-            remainingBalance = getRemainingBalance(periodicalInterestRate, periodicalPayment, remainingBalance, schedules, paymentNumber);
+        for(int paymentNumber = 1; paymentNumber <= amortizationRequest.getNumberOfPayments(); paymentNumber ++) {
+            remainingBalance = getRemainingBalance(periodicalInterestRate, roundedPeriodicalPayment, remainingBalance, schedules, paymentNumber);
         }
-        AmortizationResponse response = buildAmortizationResponse(amortizationRequest.getLoanAmount(), schedules);
+        AmortizationResponse response = ServiceUtils.buildAmortizationResponse(amortizationRequest.getLoanAmount(), schedules);
 
         amortizationCalculationRepository.save(amortizationRequest);
         amortizationCalculationResultRepository.save(response);
 
         return response;
+    }
+
+    public List<AmortizationResponse> listAllAmortizations() {
+        return amortizationCalculationResultRepository.findAll();
     }
 
     private double calculatePeriodicalInterestRate(AmortizationRequest amortizationRequest) {
@@ -46,11 +51,12 @@ public class AmortizationCalculationService {
     private double getRemainingBalance(double roundedPeriodicalInterestRate, double roundedPeriodicalPayment, double remainingBalance, List<AmortizationSchedule> schedules, int paymentNumber) {
         double interestPayment = remainingBalance * roundedPeriodicalInterestRate;
         double roundedInterestPayment = ServiceUtils.roundNumbers(interestPayment, 2);
-        double principalPayment = roundedPeriodicalPayment - roundedInterestPayment;
+        double principalPayment = ServiceUtils.roundNumbers((roundedPeriodicalPayment - roundedInterestPayment),2);
         remainingBalance -= principalPayment;
-        AmortizationSchedule schedule = buildAmortizationSchedule(paymentNumber, roundedPeriodicalPayment, principalPayment, roundedInterestPayment, remainingBalance);
+        double roundedRemainingBalance = ServiceUtils.roundNumbers(remainingBalance,2);
+        AmortizationSchedule schedule = ServiceUtils.buildAmortizationSchedule(paymentNumber, roundedPeriodicalPayment, principalPayment, roundedInterestPayment, roundedRemainingBalance);
         schedules.add(schedule);
-        return remainingBalance;
+        return roundedRemainingBalance;
     }
 
     private double calculatePeriodicalPayment(double loanAmount, double periodicalInterestRate, int numberOfPayments) {
@@ -58,22 +64,5 @@ public class AmortizationCalculationService {
         double denominator = 1 - Math.pow(1 + periodicalInterestRate, -numberOfPayments);
         double periodicalPayment = numerator/denominator;
         return ServiceUtils.roundNumbers(periodicalPayment, 2);
-    }
-
-    private AmortizationSchedule buildAmortizationSchedule(int order, double paymentAmount, double principalAmount, double interestAmount, double balanceOwed) {
-        return AmortizationSchedule.builder()
-                .id(order)
-                .paymentAmount(paymentAmount)
-                .principalAmount(principalAmount)
-                .interestAmount(interestAmount)
-                .balanceOwed(balanceOwed)
-                .build();
-    }
-
-    private AmortizationResponse buildAmortizationResponse(double loanAmount, List<AmortizationSchedule> schedules) {
-        return AmortizationResponse.builder()
-                .loanAmount(loanAmount)
-                .amortizationSchedule(schedules)
-                .build();
     }
 }

@@ -10,6 +10,8 @@ import com.leanpay.loancalculator.utils.ServiceUtils;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @AllArgsConstructor
 public class LoanCalculationService {
@@ -25,12 +27,16 @@ public class LoanCalculationService {
 
         double totalInterestPaid = getTotalInterestPaid(loanRequest, numberOfPayments, monthlyPayment);
 
-        LoanResponse response = buildLoanResponse(monthlyPayment, totalInterestPaid);
+        LoanResponse response = ServiceUtils.buildLoanResponse(monthlyPayment, totalInterestPaid);
 
         loanCalculationRepository.save(loanRequest);
         loanCalculationResponseRepository.save(response);
 
         return response;
+    }
+
+    public List<LoanResponse> listAllLoans() {
+        return loanCalculationResponseRepository.findAll();
     }
 
     private double calculateMonthlyInterestRate(double interestRate) {
@@ -47,13 +53,6 @@ public class LoanCalculationService {
     private double getTotalInterestPaid(LoanRequest loanRequest, int numberOfMonths, double monthlyPayment) {
         double interest =  (monthlyPayment * numberOfMonths) - loanRequest.getLoanAmount();
         return ServiceUtils.roundNumbers(interest, 2);
-    }
-
-    private LoanResponse buildLoanResponse(double monthlyPayment, double totalInterestPaid) {
-        return LoanResponse.builder()
-                .monthlyPayment(monthlyPayment)
-                .totalInterestPaid(totalInterestPaid)
-                .build();
     }
 
     private int getNumberOfMonths(LoanTerm loanTerm) {

@@ -9,6 +9,8 @@ import com.leanpay.loancalculator.service.LoanCalculationService;
 import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @AllArgsConstructor
 @RequestMapping("/calculator")
@@ -19,13 +21,25 @@ public class LoanCalculatorController {
 
     @PostMapping("/loan")
     @CrossOrigin
-    private LoanResponse calculateLoan(@RequestBody LoanRequest loanRequest) {
+    public LoanResponse calculateLoan(@RequestBody LoanRequest loanRequest) {
         return loanCalculationService.calculateLoanPayments(loanRequest);
     }
 
     @PostMapping("/amortization")
     @CrossOrigin
-    private AmortizationResponse calculateAmortization(@RequestBody AmortizationRequest amortizationRequest) {
+    public AmortizationResponse calculateAmortization(@RequestBody AmortizationRequest amortizationRequest) {
         return amortizationCalculationService.calculateAmortizationObligations(amortizationRequest);
+    }
+
+    @GetMapping("/loans")
+    @CrossOrigin
+    public List<LoanResponse> listLoans() {
+        return loanCalculationService.listAllLoans();
+    }
+
+    @GetMapping("/amortizations")
+    @CrossOrigin
+    public List<AmortizationResponse> listAmortizations() {
+        return amortizationCalculationService.listAllAmortizations();
     }
 }
