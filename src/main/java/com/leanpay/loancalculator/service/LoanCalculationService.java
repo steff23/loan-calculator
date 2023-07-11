@@ -8,8 +8,15 @@ import com.leanpay.loancalculator.repository.LoanCalculationRepository;
 import com.leanpay.loancalculator.repository.LoanCalculationResponseRepository;
 import com.leanpay.loancalculator.utils.ServiceUtils;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.function.EntityResponse;
+import org.springframework.web.servlet.function.ServerResponse;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -18,40 +25,45 @@ public class LoanCalculationService {
 
     private final LoanCalculationRepository loanCalculationRepository;
     private final LoanCalculationResponseRepository loanCalculationResponseRepository;
-    public LoanResponse calculateLoanPayments(LoanRequest loanRequest) {
+
+    @Transactional
+    public ResponseEntity<LoanResponse> calculateLoanPayments(LoanRequest loanRequest) {
         int numberOfPayments = getNumberOfMonths(loanRequest.getLoanTerm());
 
-        double interestRatePerMonth = calculateMonthlyInterestRate(loanRequest.getInterestRate());
+        BigDecimal interestRatePerMonth = calculateMonthlyInterestRate(loanRequest.getInterestRate());
 
-        double monthlyPayment = getMonthlyPayment(loanRequest.getLoanAmount(), numberOfPayments, interestRatePerMonth);
+        BigDecimal monthlyPayment = getMonthlyPayment(loanRequest.getLoanAmount(), numberOfPayments, interestRatePerMonth);
 
-        double totalInterestPaid = getTotalInterestPaid(loanRequest, numberOfPayments, monthlyPayment);
+        BigDecimal totalInterestPaid = getTotalInterestPaid(loanRequest, numberOfPayments, monthlyPayment);
 
         LoanResponse response = ServiceUtils.buildLoanResponse(monthlyPayment, totalInterestPaid);
 
         loanCalculationRepository.save(loanRequest);
         loanCalculationResponseRepository.save(response);
 
-        return response;
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    public List<LoanResponse> listAllLoans() {
-        return loanCalculationResponseRepository.findAll();
+    @Transactional
+    public ResponseEntity<List<LoanResponse>> listAllLoans() {
+        List<LoanResponse> loanResponses = loanCalculationResponseRepository.findAll();
+        return new ResponseEntity<>(loanResponses, HttpStatus.OK);
     }
 
-    private double calculateMonthlyInterestRate(double interestRate) {
-        double monthlyInterestRate =  interestRate / 100 / DurationPeriod.MONTHS.getDurationPerYear();
+    private BigDecimal calculateMonthlyInterestRate(BigDecimal interestRate) {
+        BigDecimal monthlyInterestRate = interestRate.divide(new BigDecimal("100"), RoundingMode.HALF_UP).divide(BigDecimal.valueOf(DurationPeriod.MONTHS.getDurationPerYear()), RoundingMode.HALF_UP);
         return ServiceUtils.roundNumbers(monthlyInterestRate, 6);
     }
 
-    private double getMonthlyPayment(double loanAmount, int numberOfMonths, double interestRatePerMonth) {
-        double numerator = loanAmount * interestRatePerMonth * Math.pow((1 + interestRatePerMonth), numberOfMonths);
-        double denominator = Math.pow((1 + interestRatePerMonth), numberOfMonths) - 1;
-        return ServiceUtils.roundNumbers(numerator/denominator,2);
+    private BigDecimal getMonthlyPayment(BigDecimal loanAmount, int numberOfMonths, BigDecimal interestRatePerMonth) {
+        BigDecimal base = interestRatePerMonth.add(BigDecimal.ONE);
+        BigDecimal numerator = loanAmount.multiply(interestRatePerMonth).multiply(base.pow(numberOfMonths));
+        BigDecimal denominator = base.pow(numberOfMonths).subtract(BigDecimal.ONE);
+        return ServiceUtils.roundNumbers(numerator.divide(denominator, RoundingMode.HALF_UP), 2);
     }
 
-    private double getTotalInterestPaid(LoanRequest loanRequest, int numberOfMonths, double monthlyPayment) {
-        double interest =  (monthlyPayment * numberOfMonths) - loanRequest.getLoanAmount();
+    private BigDecimal getTotalInterestPaid(LoanRequest loanRequest, int numberOfMonths, BigDecimal monthlyPayment) {
+        BigDecimal interest = (monthlyPayment.multiply(new BigDecimal(String.valueOf(numberOfMonths)))).subtract(loanRequest.getLoanAmount());
         return ServiceUtils.roundNumbers(interest, 2);
     }
 

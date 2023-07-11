@@ -6,7 +6,9 @@ import com.leanpay.loancalculator.model.response.amortization.AmortizationRespon
 import com.leanpay.loancalculator.model.response.loan.LoanResponse;
 import com.leanpay.loancalculator.service.AmortizationCalculationService;
 import com.leanpay.loancalculator.service.LoanCalculationService;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,26 +22,22 @@ public class LoanCalculatorController {
     private final AmortizationCalculationService amortizationCalculationService;
 
     @PostMapping("/loan")
-    @CrossOrigin
-    public LoanResponse calculateLoan(@RequestBody LoanRequest loanRequest) {
+    public ResponseEntity<LoanResponse> calculateLoan(@Valid @RequestBody LoanRequest loanRequest) {
         return loanCalculationService.calculateLoanPayments(loanRequest);
     }
 
     @PostMapping("/amortization")
-    @CrossOrigin
-    public AmortizationResponse calculateAmortization(@RequestBody AmortizationRequest amortizationRequest) {
+    public ResponseEntity<AmortizationResponse> calculateAmortization(@Valid @RequestBody AmortizationRequest amortizationRequest) {
         return amortizationCalculationService.calculateAmortizationObligations(amortizationRequest);
     }
 
     @GetMapping("/loans")
-    @CrossOrigin
-    public List<LoanResponse> listLoans() {
+    public ResponseEntity<List<LoanResponse>> listLoans() {
         return loanCalculationService.listAllLoans();
     }
 
     @GetMapping("/amortizations")
-    @CrossOrigin
-    public List<AmortizationResponse> listAmortizations() {
+    public ResponseEntity<List<AmortizationResponse>> listAmortizations() {
         return amortizationCalculationService.listAllAmortizations();
     }
 }

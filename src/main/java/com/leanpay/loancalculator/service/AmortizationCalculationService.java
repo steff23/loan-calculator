@@ -7,8 +7,13 @@ import com.leanpay.loancalculator.repository.AmortizationCalculationRepository;
 import com.leanpay.loancalculator.repository.AmortizationCalculationResultRepository;
 import com.leanpay.loancalculator.utils.ServiceUtils;
 import lombok.AllArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,16 +23,18 @@ public class AmortizationCalculationService {
 
     private final AmortizationCalculationRepository amortizationCalculationRepository;
     private final AmortizationCalculationResultRepository amortizationCalculationResultRepository;
-    public AmortizationResponse calculateAmortizationObligations(AmortizationRequest amortizationRequest) {
 
-        double periodicalInterestRate = calculatePeriodicalInterestRate(amortizationRequest);
+    @Transactional
+    public ResponseEntity<AmortizationResponse> calculateAmortizationObligations(AmortizationRequest amortizationRequest) {
 
-        double periodicalPayment = calculatePeriodicalPayment(amortizationRequest.getLoanAmount(), periodicalInterestRate, amortizationRequest.getNumberOfPayments());
-        double roundedPeriodicalPayment = ServiceUtils.roundNumbers(periodicalPayment, 2);
-        double remainingBalance = amortizationRequest.getLoanAmount();
+        BigDecimal periodicalInterestRate = calculatePeriodicalInterestRate(amortizationRequest);
+
+        BigDecimal periodicalPayment = calculatePeriodicalPayment(amortizationRequest.getLoanAmount(), periodicalInterestRate, amortizationRequest.getNumberOfPayments());
+        BigDecimal roundedPeriodicalPayment = ServiceUtils.roundNumbers(periodicalPayment, 2);
+        BigDecimal remainingBalance = amortizationRequest.getLoanAmount();
 
         List<AmortizationSchedule> schedules = new ArrayList<>();
-        for(int paymentNumber = 1; paymentNumber <= amortizationRequest.getNumberOfPayments(); paymentNumber ++) {
+        for (int paymentNumber = 1; paymentNumber <= amortizationRequest.getNumberOfPayments(); paymentNumber++) {
             remainingBalance = getRemainingBalance(periodicalInterestRate, roundedPeriodicalPayment, remainingBalance, schedules, paymentNumber);
         }
         AmortizationResponse response = ServiceUtils.buildAmortizationResponse(amortizationRequest.getLoanAmount(), schedules);
@@ -35,34 +42,37 @@ public class AmortizationCalculationService {
         amortizationCalculationRepository.save(amortizationRequest);
         amortizationCalculationResultRepository.save(response);
 
-        return response;
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    public List<AmortizationResponse> listAllAmortizations() {
-        return amortizationCalculationResultRepository.findAll();
+    @Transactional
+    public ResponseEntity<List<AmortizationResponse>> listAllAmortizations() {
+        List<AmortizationResponse> amortizationResponses = amortizationCalculationResultRepository.findAll();
+        return new ResponseEntity<>(amortizationResponses, HttpStatus.OK);
     }
 
-    private double calculatePeriodicalInterestRate(AmortizationRequest amortizationRequest) {
+    private BigDecimal calculatePeriodicalInterestRate(AmortizationRequest amortizationRequest) {
         int paymentFrequency = amortizationRequest.getPaymentFrequency().getFrequencyPerYear();
-        double periodicalInterestRate =  amortizationRequest.getInterestRate() / 100 / paymentFrequency;
-        return ServiceUtils.roundNumbers(periodicalInterestRate,6);
+        BigDecimal periodicalInterestRate = amortizationRequest.getInterestRate().divide(new BigDecimal("100"), RoundingMode.HALF_UP).divide(new BigDecimal(String.valueOf(paymentFrequency)), RoundingMode.HALF_UP);
+        return ServiceUtils.roundNumbers(periodicalInterestRate, 6);
     }
 
-    private double getRemainingBalance(double roundedPeriodicalInterestRate, double roundedPeriodicalPayment, double remainingBalance, List<AmortizationSchedule> schedules, int paymentNumber) {
-        double interestPayment = remainingBalance * roundedPeriodicalInterestRate;
-        double roundedInterestPayment = ServiceUtils.roundNumbers(interestPayment, 2);
-        double principalPayment = ServiceUtils.roundNumbers((roundedPeriodicalPayment - roundedInterestPayment),2);
-        remainingBalance -= principalPayment;
-        double roundedRemainingBalance = ServiceUtils.roundNumbers(remainingBalance,2);
+    private BigDecimal getRemainingBalance(BigDecimal roundedPeriodicalInterestRate, BigDecimal roundedPeriodicalPayment, BigDecimal remainingBalance, List<AmortizationSchedule> schedules, int paymentNumber) {
+        BigDecimal interestPayment = remainingBalance.multiply(roundedPeriodicalInterestRate);
+        BigDecimal roundedInterestPayment = ServiceUtils.roundNumbers(interestPayment, 2);
+        BigDecimal principalPayment = ServiceUtils.roundNumbers((roundedPeriodicalPayment.subtract(roundedInterestPayment)), 2);
+        remainingBalance = remainingBalance.subtract(principalPayment);
+        BigDecimal roundedRemainingBalance = ServiceUtils.roundNumbers(remainingBalance, 2);
         AmortizationSchedule schedule = ServiceUtils.buildAmortizationSchedule(paymentNumber, roundedPeriodicalPayment, principalPayment, roundedInterestPayment, roundedRemainingBalance);
         schedules.add(schedule);
         return roundedRemainingBalance;
     }
 
-    private double calculatePeriodicalPayment(double loanAmount, double periodicalInterestRate, int numberOfPayments) {
-        double numerator = periodicalInterestRate * loanAmount;
-        double denominator = 1 - Math.pow(1 + periodicalInterestRate, -numberOfPayments);
-        double periodicalPayment = numerator/denominator;
+    private BigDecimal calculatePeriodicalPayment(BigDecimal loanAmount, BigDecimal periodicalInterestRate, int numberOfPayments) {
+        BigDecimal numerator = periodicalInterestRate.multiply(loanAmount);
+        BigDecimal base = periodicalInterestRate.add(BigDecimal.ONE);
+        BigDecimal denominator = BigDecimal.ONE.subtract(base.pow(-numberOfPayments));
+        BigDecimal periodicalPayment = numerator.divide(denominator, RoundingMode.HALF_UP);
         return ServiceUtils.roundNumbers(periodicalPayment, 2);
     }
 }

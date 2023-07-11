@@ -6,8 +6,10 @@ import com.leanpay.loancalculator.model.request.amortization.AmortizationRequest
 import com.leanpay.loancalculator.model.request.loan.LoanRequest;
 import com.leanpay.loancalculator.model.request.loan.LoanTerm;
 
+import java.math.BigDecimal;
+
 public class ServiceTestUtils {
-    public static LoanRequest buildLoanRequest(double loanAmount, double interestRate, LoanTerm loanTerm) {
+    public static LoanRequest buildLoanRequest(BigDecimal loanAmount, BigDecimal interestRate, LoanTerm loanTerm) {
         return LoanRequest.builder()
                 .loanAmount(loanAmount)
                 .interestRate(interestRate)
@@ -15,7 +17,7 @@ public class ServiceTestUtils {
                 .build();
     }
 
-    public static AmortizationRequest buildAmortizationRequest(double loanAmount, double interestRate, int numberOfPayments, PaymentFrequency paymentFrequency) {
+    public static AmortizationRequest buildAmortizationRequest(BigDecimal loanAmount, BigDecimal interestRate, int numberOfPayments, PaymentFrequency paymentFrequency) {
         return AmortizationRequest.builder()
                 .loanAmount(loanAmount)
                 .interestRate(interestRate)
