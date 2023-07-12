@@ -1,16 +1,14 @@
 package com.leanpay.loancalculator.model.request.loan;
 
 import com.leanpay.loancalculator.model.enums.DurationPeriod;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 @Builder
 public class LoanTerm {
-    @Min(1)
+    @Positive
     private int duration;
-    @NotBlank
     private DurationPeriod durationPeriod;
 }

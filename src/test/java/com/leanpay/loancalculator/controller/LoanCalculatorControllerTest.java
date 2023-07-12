@@ -22,6 +22,7 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -50,7 +51,7 @@ class LoanCalculatorControllerTest {
     }
 
     @Test
-    public void testCalculateLoan() {
+    public void testCalculateLoan() throws MethodArgumentNotValidException {
         // Given
         LoanTerm loanTerm = ServiceTestUtils.buildLoanTerm(5, DurationPeriod.YEARS);
         LoanRequest loanRequest = ServiceTestUtils.buildLoanRequest(new BigDecimal("10000"), new BigDecimal("5"), loanTerm);
@@ -88,7 +89,7 @@ class LoanCalculatorControllerTest {
     }
 
     @Test
-    public void testCalculateAmortization() {
+    public void testCalculateAmortization() throws MethodArgumentNotValidException {
         // Given
         AmortizationRequest amortizationRequest = ServiceTestUtils.buildAmortizationRequest(new BigDecimal("10000"), new BigDecimal("5"), 3, PaymentFrequency.MONTHLY);
         AmortizationSchedule firstRate = ServiceUtils.buildAmortizationSchedule(1, new BigDecimal("3361.15"), new BigDecimal("3319.48"), new BigDecimal("41.67"), new BigDecimal("6680.52"));

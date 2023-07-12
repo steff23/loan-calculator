@@ -9,6 +9,8 @@ import com.leanpay.loancalculator.service.LoanCalculationService;
 import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,12 +24,12 @@ public class LoanCalculatorController {
     private final AmortizationCalculationService amortizationCalculationService;
 
     @PostMapping("/loan")
-    public ResponseEntity<LoanResponse> calculateLoan(@Valid @RequestBody LoanRequest loanRequest) {
+    public ResponseEntity<LoanResponse> calculateLoan(@Valid @RequestBody LoanRequest loanRequest) throws MethodArgumentNotValidException {
         return loanCalculationService.calculateLoanPayments(loanRequest);
     }
 
     @PostMapping("/amortization")
-    public ResponseEntity<AmortizationResponse> calculateAmortization(@Valid @RequestBody AmortizationRequest amortizationRequest) {
+    public ResponseEntity<AmortizationResponse> calculateAmortization(@Valid @RequestBody AmortizationRequest amortizationRequest) throws MethodArgumentNotValidException {
         return amortizationCalculationService.calculateAmortizationObligations(amortizationRequest);
     }
 

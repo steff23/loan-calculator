@@ -1,6 +1,7 @@
 package com.leanpay.loancalculator.model.request.loan;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import lombok.Builder;
 import lombok.Data;
@@ -20,5 +21,6 @@ public class LoanRequest {
     private BigDecimal loanAmount;
     @DecimalMin(value = "5.00")
     private BigDecimal interestRate;
+    @Valid
     private LoanTerm loanTerm;
 }
