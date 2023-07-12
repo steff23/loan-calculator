@@ -42,18 +42,18 @@ public class AmortizationCalculationService {
         amortizationCalculationRepository.save(amortizationRequest);
         amortizationCalculationResultRepository.save(response);
 
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @Transactional
     public ResponseEntity<List<AmortizationResponse>> listAllAmortizations() {
         List<AmortizationResponse> amortizationResponses = amortizationCalculationResultRepository.findAll();
-        return new ResponseEntity<>(amortizationResponses, HttpStatus.OK);
+        return ResponseEntity.ok(amortizationResponses);
     }
 
     private BigDecimal calculatePeriodicalInterestRate(AmortizationRequest amortizationRequest) {
         int paymentFrequency = amortizationRequest.getPaymentFrequency().getFrequencyPerYear();
-        BigDecimal periodicalInterestRate = amortizationRequest.getInterestRate().divide(new BigDecimal("100"), RoundingMode.HALF_UP).divide(new BigDecimal(String.valueOf(paymentFrequency)), RoundingMode.HALF_UP);
+        BigDecimal periodicalInterestRate = amortizationRequest.getInterestRate().divide(new BigDecimal("100"), 6, RoundingMode.HALF_UP).divide(new BigDecimal(String.valueOf(paymentFrequency)), 6, RoundingMode.HALF_UP);
         return ServiceUtils.roundNumbers(periodicalInterestRate, 6);
     }
 

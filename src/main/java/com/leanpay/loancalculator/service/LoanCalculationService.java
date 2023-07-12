@@ -12,8 +12,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.servlet.function.EntityResponse;
-import org.springframework.web.servlet.function.ServerResponse;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -41,17 +39,17 @@ public class LoanCalculationService {
         loanCalculationRepository.save(loanRequest);
         loanCalculationResponseRepository.save(response);
 
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @Transactional
     public ResponseEntity<List<LoanResponse>> listAllLoans() {
         List<LoanResponse> loanResponses = loanCalculationResponseRepository.findAll();
-        return new ResponseEntity<>(loanResponses, HttpStatus.OK);
+        return ResponseEntity.ok(loanResponses);
     }
 
     private BigDecimal calculateMonthlyInterestRate(BigDecimal interestRate) {
-        BigDecimal monthlyInterestRate = interestRate.divide(new BigDecimal("100"), RoundingMode.HALF_UP).divide(BigDecimal.valueOf(DurationPeriod.MONTHS.getDurationPerYear()), RoundingMode.HALF_UP);
+        BigDecimal monthlyInterestRate = interestRate.divide(new BigDecimal("100.00"), 6, RoundingMode.HALF_UP).divide(new BigDecimal(DurationPeriod.MONTHS.getDurationPerYear()), RoundingMode.HALF_UP);
         return ServiceUtils.roundNumbers(monthlyInterestRate, 6);
     }
 
